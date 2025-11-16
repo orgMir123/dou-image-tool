@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量抠图工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragging {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: #999;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .result-item {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-name {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-download {
+            padding: 6px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-download:hover {
+            background: #5568d3;
+        }
+
+        .stats {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+
+        .stat-item {
+            display: inline-block;
+            margin: 0 20px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .preview-area {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f0f0f0;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .model-selector {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+
+        .model-selector label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-right: 10px;
+        }
+
+        .model-selector select {
+            padding: 8px 15px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .model-selector select:hover {
+            border-color: #764ba2;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .model-selector select:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .model-hint {
+            display: block;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0 30px 0;
+        }
+
+        .tab-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 16px;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #666;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #e0e0e0;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .content-generator {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .generate-result {
+            background: #f8f9ff;
+            padding: 30px;
+            border-radius: 10px;
+            display: none;
+            margin-top: 30px;
+        }
+
+        .generate-result.show {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .result-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            line-height: 1.8;
+            color: #333;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-copy {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-regenerate {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-regenerate:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ 多功能工具箱</h1>
+        <p class="subtitle">批量抠图 | AI文案生成</p>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('image')">📸 批量抠图</button>
+            <button class="tab-btn" onclick="switchTab('content')">✍️ 文案生成</button>
+        </div>
+
+        <!-- 批量抠图Tab -->
+        <div id="imageTab" class="tab-content active">
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">点击或拖拽图片到这里</div>
+            <div class="upload-hint">支持 JPG、PNG、WEBP、BMP 格式，可同时处理多张图片</div>
+            <input type="file" id="fileInput" multiple accept="image/*">
+        </div>
+
+        <div class="model-selector">
+            <label for="modelSelect">AI 模型：</label>
+            <select id="modelSelect">
+                <option value="u2net" selected>u2net (通用 - 推荐)</option>
+                <option value="u2netp">u2netp (快速版)</option>
+                <option value="u2net_cloth_seg">u2net_cloth_seg (服装专用)</option>
+                <option value="silueta">silueta (人像/服装)</option>
+            </select>
+            <span class="model-hint">💡 不同模型对不同图片效果不同，可多试几个</span>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-primary" id="uploadBtn" style="display:none;">开始处理</button>
+            <button class="btn-secondary" id="clearBtn" style="display:none;">清空</button>
+            <button class="btn-primary" id="downloadAllBtn" style="display:none;">打包下载全部</button>
+        </div>
+
+        <div class="preview-area" id="previewArea"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">正在处理中...</p>
+        </div>
+
+        <div class="stats" id="stats" style="display:none;">
+            <div class="stat-item">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">总计</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="successCount">0</div>
+                <div class="stat-label">成功</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="failedCount">0</div>
+                <div class="stat-label">失败</div>
+            </div>
+        </div>
+
+        <div class="results" id="results"></div>
+        </div>
+        <!-- 批量抠图Tab结束 -->
+
+        <!-- 文案生成Tab -->
+        <div id="contentTab" class="tab-content">
+            <div class="content-generator">
+                <div class="input-group">
+                    <label for="productName">商品名称</label>
+                    <input type="text" id="productName" placeholder="例如：白鸭绒立领马甲">
+                </div>
+
+                <div class="input-group">
+                    <label for="productDesc">商品介绍</label>
+                    <textarea id="productDesc" placeholder="粘贴从抖音视频话术复制的商品描述，包含卖点、特性等信息"></textarea>
+                </div>
+
+                <button class="btn-primary" id="generateBtn">生成文案</button>
+
+                <div class="loading" id="contentLoading" style="display:none;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px; color: #666;">正在生成文案...</p>
+                </div>
+
+                <div class="generate-result" id="generateResult">
+                    <div class="result-header">
+                        <div class="result-title">📝 生成的文案</div>
+                        <div class="result-meta">款式：<span id="categoryName"></span> | 模板库：<span id="templateInfo"></span></div>
+                    </div>
+                    <div class="result-content" id="generatedContent"></div>
+                    <div class="result-actions">
+                        <button class="btn-action btn-copy" onclick="copyContent()">📋 复制文案</button>
+                        <button class="btn-action btn-regenerate" onclick="regenerateContent()">🔄 换一个</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 文案生成Tab结束 -->
+
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const loading = document.getElementById('loading');
+        const stats = document.getElementById('stats');
+        const results = document.getElementById('results');
+        const previewArea = document.getElementById('previewArea');
+
+        let selectedFiles = [];
+
+        // 点击上传区域
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+
+            // 显示预览
+            previewArea.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.innerHTML = `<img src="${e.target.result}" alt="${file.name}">`;
+                    previewArea.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            uploadBtn.style.display = 'inline-block';
+            clearBtn.style.display = 'inline-block';
+        }
+
+        // 开始处理
+        uploadBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) {
+                alert('请先选择图片');
+                return;
+            }
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('files[]', file);
+            });
+
+            // 添加选择的模型参数
+            const selectedModel = document.getElementById('modelSelect').value;
+            formData.append('model', selectedModel);
+
+            loading.style.display = 'block';
+            uploadBtn.disabled = true;
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                loading.style.display = 'none';
+                uploadBtn.disabled = false;
+
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    alert('处理失败：' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                uploadBtn.disabled = false;
+                alert('处理失败：' + error.message);
+            }
+        });
+
+        function displayResults(data) {
+            stats.style.display = 'block';
+            document.getElementById('totalCount').textContent = data.processed + data.failed;
+            document.getElementById('successCount').textContent = data.processed;
+            document.getElementById('failedCount').textContent = data.failed;
+
+            results.innerHTML = '';
+            data.files.forEach(file => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                div.innerHTML = `
+                    <div class="result-name">✅ ${file.original} → ${file.processed}</div>
+                    <div class="result-actions">
+                        <button class="btn-download" onclick="downloadFile('${file.download_url}')">下载</button>
+                    </div>
+                `;
+                results.appendChild(div);
+            });
+
+            if (data.processed > 0) {
+                downloadAllBtn.style.display = 'inline-block';
+            }
+        }
+
+        function downloadFile(url) {
+            window.location.href = url;
+        }
+
+        // 打包下载全部
+        downloadAllBtn.addEventListener('click', () => {
+            window.location.href = '/download_all';
+        });
+
+        // 清空
+        clearBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            fileInput.value = '';
+            previewArea.innerHTML = '';
+            results.innerHTML = '';
+            stats.style.display = 'none';
+            uploadBtn.style.display = 'none';
+            clearBtn.style.display = 'none';
+            downloadAllBtn.style.display = 'none';
+
+            fetch('/clear');
+        });
+
+        // Tab切换功能
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (tabName === 'image') {
+                document.getElementById('imageTab').classList.add('active');
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            } else if (tabName === 'content') {
+                document.getElementById('contentTab').classList.add('active');
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            }
+        }
+
+        // 文案生成功能
+        const generateBtn = document.getElementById('generateBtn');
+        const contentLoading = document.getElementById('contentLoading');
+        const generateResult = document.getElementById('generateResult');
+        const generatedContent = document.getElementById('generatedContent');
+        const categoryName = document.getElementById('categoryName');
+        const templateInfo = document.getElementById('templateInfo');
+
+        let currentTemplateIndex = null;
+        let currentTotalTemplates = 0;
+        let currentProductName = '';
+        let currentProductDesc = '';
+
+        generateBtn.addEventListener('click', async () => {
+            const productName = document.getElementById('productName').value.trim();
+            const productDesc = document.getElementById('productDesc').value.trim();
+
+            if (!productName || !productDesc) {
+                alert('请输入商品名称和商品介绍');
+                return;
+            }
+
+            currentProductName = productName;
+            currentProductDesc = productDesc;
+
+            contentLoading.style.display = 'block';
+            generateResult.classList.remove('show');
+            generateBtn.disabled = true;
+
+            try {
+                const response = await fetch('/generate_content', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        product_name: productName,
+                        description: productDesc
+                    })
+                });
+
+                const data = await response.json();
+
+                contentLoading.style.display = 'none';
+                generateBtn.disabled = false;
+
+                if (data.success) {
+                    generatedContent.textContent = data.content;
+                    categoryName.textContent = data.category;
+                    templateInfo.textContent = `${data.template_index + 1}/${data.total_templates}`;
+                    currentTemplateIndex = data.template_index;
+                    currentTotalTemplates = data.total_templates;
+                    generateResult.classList.add('show');
+                } else {
+                    alert('生成失败：' + data.error);
+                }
+            } catch (error) {
+                contentLoading.style.display = 'none';
+                generateBtn.disabled = false;
+                alert('生成失败：' + error.message);
+            }
+        });
+
+        // 复制文案
+        function copyContent() {
+            const content = generatedContent.textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('✅ 文案已复制到剪贴板');
+            }).catch(err => {
+                alert('复制失败，请手动复制');
+            });
+        }
+
+        // 重新生成（使用下一个模板）
+        async function regenerateContent() {
+            if (!currentProductName || !currentProductDesc) {
+                alert('请先生成文案');
+                return;
+            }
+
+            // 计算下一个模板索引
+            const nextIndex = (currentTemplateIndex + 1) % currentTotalTemplates;
+
+            contentLoading.style.display = 'block';
+            generateResult.classList.remove('show');
+
+            try {
+                const response = await fetch('/generate_content', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        product_name: currentProductName,
+                        description: currentProductDesc,
+                        template_index: nextIndex
+                    })
+                });
+
+                const data = await response.json();
+
+                contentLoading.style.display = 'none';
+
+                if (data.success) {
+                    generatedContent.textContent = data.content;
+                    categoryName.textContent = data.category;
+                    templateInfo.textContent = `${data.template_index + 1}/${data.total_templates}`;
+                    currentTemplateIndex = data.template_index;
+                    generateResult.classList.add('show');
+                } else {
+                    alert('生成失败：' + data.error);
+                }
+            } catch (error) {
+                contentLoading.style.display = 'none';
+                alert('生成失败：' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

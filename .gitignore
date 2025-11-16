@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# 上传和输出目录
+web_uploads/
+web_outputs/
+input/
+output/
+
+# 调试文件
+debug_page.html
+*.log
+
+# Cookie文件
+cookies.json
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 爬虫相关（不需要部署）
+image_downloader.py
+cookie_manager.py
+save_cookies.py
+link_parser.py
+main.py
+test_*.py
+video_extractor*.py
+video_text_parser.py
+cookies.pkl
+debug_page*.html
+
+# 部署生成的文件
+*.zip
+temp/
