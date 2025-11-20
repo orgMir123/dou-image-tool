@@ -15,14 +15,29 @@ class ContentGenerator:
         if template_path is None:
             # 使用相对路径，在部署时也能正常工作
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            template_path = os.path.join(current_dir, '文案.docx')
+            template_path = os.path.join(current_dir, 'templates.docx')
         self.template_path = template_path
         self.templates = {}  # 按款式分类的模板库
+        self.available = False  # 标记文案功能是否可用
         self.load_templates()
 
     def load_templates(self):
         """加载并分类所有模板"""
-        doc = Document(self.template_path)
+        # 检查模板文件是否存在
+        if not os.path.exists(self.template_path):
+            print(f"警告: 模板文件不存在: {self.template_path}")
+            print("文案生成功能已禁用")
+            self.available = False
+            return
+
+        try:
+            doc = Document(self.template_path)
+            self.available = True
+        except Exception as e:
+            print(f"警告: 无法加载模板文件: {e}")
+            print("文案生成功能已禁用")
+            self.available = False
+            return
 
         # 定义款式关键词映射
         category_keywords = {
@@ -100,6 +115,15 @@ class ContentGenerator:
         Returns:
             生成的文案
         """
+        # 检查功能是否可用
+        if not self.available:
+            return {
+                'content': '文案生成功能暂不可用（模板文件未找到）',
+                'category': '无',
+                'template_index': 0,
+                'total_templates': 0
+            }
+
         # 识别款式
         category = self.identify_category(product_name, description)
 
