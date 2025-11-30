@@ -688,6 +688,236 @@ def download_video():
         return jsonify({'success': False, 'error': f'下载失败: {str(e)}'}), 500
 
 
+@app.route('/synthesize_speech', methods=['POST'])
+def synthesize_speech():
+    """文字转语音"""
+    try:
+        from aliyun_tts import text_to_speech, AliyunTTS
+
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        voice = data.get('voice', 'xiaoyun')
+        speech_rate = int(data.get('speech_rate', 0))
+        pitch_rate = int(data.get('pitch_rate', 0))
+        volume = int(data.get('volume', 50))
+
+        if not text:
+            return jsonify({
+                'success': False,
+                'error': '请输入要合成的文本'
+            })
+
+        if len(text) > 1000:
+            return jsonify({
+                'success': False,
+                'error': '文本长度不能超过1000字符'
+            })
+
+        print(f"TTS合成 - 文本: {text[:50]}..., 声音: {voice}")
+
+        # 异步合成语音
+        async def do_synthesize():
+            return await text_to_speech(
+                text=text,
+                voice=voice,
+                speech_rate=speech_rate,
+                pitch_rate=pitch_rate,
+                volume=volume
+            )
+
+        audio_data = asyncio.run(do_synthesize())
+
+        # 转换为base64返回（只返回纯base64字符串，不包含data URI前缀）
+        audio_base64 = base64.b64encode(audio_data).decode()
+
+        return jsonify({
+            'success': True,
+            'audio': audio_base64,
+            'size': len(audio_data)
+        })
+
+    except Exception as e:
+        print(f"TTS合成失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'合成失败: {str(e)}'
+        })
+
+
+@app.route('/get_voices', methods=['GET'])
+def get_voices():
+    """获取可用的发音人列表（阿里云）"""
+    try:
+        from aliyun_tts import AliyunTTS
+
+        voices = []
+        for voice_id, description in AliyunTTS.VOICES.items():
+            voices.append({
+                'id': voice_id,
+                'name': description
+            })
+
+        return jsonify({
+            'success': True,
+            'voices': voices
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@app.route('/synthesize_speech_tencent', methods=['POST'])
+def synthesize_speech_tencent():
+    """文字转语音（腾讯云）"""
+    try:
+        from tencent_tts import text_to_speech_tencent
+
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        voice = data.get('voice', '502004')  # 默认营销女声
+        speed = float(data.get('speed', 0))
+        volume = float(data.get('volume', 0))
+        emotion = data.get('emotion', None)
+
+        if not text:
+            return jsonify({
+                'success': False,
+                'error': '请输入要合成的文本'
+            })
+
+        if len(text) > 1000:
+            return jsonify({
+                'success': False,
+                'error': '文本长度不能超过1000字符'
+            })
+
+        print(f"腾讯云TTS合成 - 文本: {text[:50]}..., 音色: {voice}")
+
+        # 异步合成语音
+        async def do_synthesize():
+            return await text_to_speech_tencent(
+                text=text,
+                voice=voice,
+                speed=speed,
+                volume=volume,
+                emotion=emotion
+            )
+
+        audio_data = asyncio.run(do_synthesize())
+
+        # 转换为base64返回（只返回纯base64字符串，不包含data URI前缀）
+        audio_base64 = base64.b64encode(audio_data).decode()
+
+        return jsonify({
+            'success': True,
+            'audio': audio_base64,
+            'size': len(audio_data)
+        })
+
+    except Exception as e:
+        print(f"腾讯云TTS合成失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'合成失败: {str(e)}'
+        })
+
+
+@app.route('/get_voices_tencent', methods=['GET'])
+def get_voices_tencent():
+    """获取可用的发音人列表（腾讯云）"""
+    try:
+        from tencent_tts import TencentTTS
+
+        voices = []
+        for voice_id, description in TencentTTS.VOICES.items():
+            voices.append({
+                'id': voice_id,
+                'name': description
+            })
+
+        # 情感列表
+        emotions = []
+        for emotion_id, description in TencentTTS.EMOTIONS.items():
+            emotions.append({
+                'id': emotion_id,
+                'name': description
+            })
+
+        return jsonify({
+            'success': True,
+            'voices': voices,
+            'emotions': emotions
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@app.route('/synthesize_speech_custom', methods=['POST'])
+def synthesize_speech_custom():
+    """文字转语音（腾讯云自定义音色 - 专业声音复刻）"""
+    try:
+        from tencent_custom_voice_tts import text_to_speech_custom_voice
+
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        voice_id = data.get('voice_id', 'WCHN-add2502611834078ac62ba7dd8d2458e')  # 你的自定义音色ID
+        speed = float(data.get('speed', 1.5))
+        volume = float(data.get('volume', 10))
+
+        if not text:
+            return jsonify({
+                'success': False,
+                'error': '请输入要合成的文本'
+            })
+
+        if len(text) > 1000:
+            return jsonify({
+                'success': False,
+                'error': '文本长度不能超过1000字符'
+            })
+
+        print(f"自定义音色TTS合成 - 文本: {text[:50]}..., 音色ID: {voice_id}")
+
+        # 异步合成语音
+        async def do_synthesize():
+            return await text_to_speech_custom_voice(
+                text=text,
+                voice_id=voice_id,
+                speed=speed,
+                volume=volume
+            )
+
+        audio_data = asyncio.run(do_synthesize())
+
+        # 返回Base64编码的音频
+        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+
+        return jsonify({
+            'success': True,
+            'audio': audio_base64,
+            'format': 'mp3'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': f'合成失败: {str(e)}'
+        })
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
     debug_mode = os.getenv('FLASK_ENV') != 'production'

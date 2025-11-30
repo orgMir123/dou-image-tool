@@ -595,6 +595,7 @@
             <button class="tab-btn" onclick="switchTab('video')">🎬 视频提取</button>
             <button class="tab-btn" onclick="switchTab('product')">🛍️ 商品取图</button>
             <button class="tab-btn" onclick="switchTab('content')">✍️ 文案生成</button>
+            <button class="tab-btn" onclick="switchTab('tts')">🎙️ 语音合成</button>
         </div>
 
         <!-- 批量抠图Tab -->
@@ -783,9 +784,162 @@
         </div>
         <!-- 文案生成Tab结束 -->
 
+        <!-- 语音合成Tab -->
+        <div id="ttsTab" class="tab-content">
+            <div class="content-generator">
+                <div class="input-group">
+                    <label for="ttsProvider">选择服务商</label>
+                    <select id="ttsProvider" style="width: 100%; padding: 12px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px;" onchange="switchTTSProvider()">
+                        <option value="tencent">腾讯云TTS（推荐：营销女声）</option>
+                        <option value="custom">自定义音色（声音克隆）⭐</option>
+                        <option value="aliyun">阿里云TTS</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="ttsText"><span id="textLimitLabel">文本内容（最长150字符）</span></label>
+                    <textarea id="ttsText" placeholder="请输入要合成的文本内容..." style="min-height: 150px;"></textarea>
+                    <div style="text-align: right; margin-top: 5px; color: #666; font-size: 12px;">
+                        <span id="textLength">0</span> / <span id="maxLength">150</span> 字符
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="voiceSelect">选择发音人</label>
+                    <select id="voiceSelect" style="width: 100%; padding: 12px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px;">
+                        <!-- 动态加载 -->
+                        <option value="xiaoyun">小云 - 女声，温柔知性</option>
+                        <option value="xiaogang">小刚 - 男声，沉稳成熟</option>
+                        <option value="ruoxi">若溪 - 女声，亲切自然</option>
+                        <option value="siqi">思琪 - 女声，温暖治愈</option>
+                        <option value="sijia">思佳 - 女声，标准女声</option>
+                        <option value="sicheng">思诚 - 男声，标准男声</option>
+                        <option value="aiqi">艾琪 - 女声，甜美</option>
+                        <option value="aijia">艾佳 - 女声，活泼</option>
+                        <option value="aicheng">艾诚 - 男声，浑厚</option>
+                        <option value="aida">艾达 - 男声，激昂</option>
+                        <option value="ninger">宁儿 - 女声，萝莉</option>
+                        <option value="ruilin">瑞琳 - 女声，成熟女性</option>
+                        <option value="siyue">思悦 - 女声，温柔</option>
+                        <option value="aixin">艾薇 - 女声，客服</option>
+                        <option value="aishuo">艾硕 - 男声，播音员</option>
+                        <option value="aitong">艾彤 - 女声，客服</option>
+                        <option value="aixia">艾夏 - 女声，亲切</option>
+                        <option value="yina">伊娜 - 女声，温柔</option>
+                        <option value="sijing">思婧 - 女声，温柔知性</option>
+                        <option value="sitong">思彤 - 女声，儿童</option>
+                    </select>
+                </div>
+
+                <div class="input-group" id="emotionSelectGroup" style="display:none;">
+                    <label for="emotionSelect">情感（部分音色支持）</label>
+                    <select id="emotionSelect" style="width: 100%; padding: 12px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px;">
+                        <option value="">默认</option>
+                        <option value="neutral">中性</option>
+                        <option value="happy" selected>高兴</option>
+                        <option value="sad">悲伤</option>
+                        <option value="angry">生气</option>
+                        <option value="fear">恐惧</option>
+                        <option value="spoil">撒娇</option>
+                        <option value="surprise">震惊</option>
+                        <option value="disgust">厌恶</option>
+                        <option value="calm">平静</option>
+                    </select>
+                </div>
+
+                <div class="input-group" id="speechRateGroup">
+                    <label>语速：<span id="speechRateValue">1</span></label>
+                    <input type="range" id="speechRate" min="-2" max="6" value="1" step="0.5"
+                           style="width: 100%;" oninput="document.getElementById('speechRateValue').textContent = this.value">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #999;">
+                        <span>慢</span>
+                        <span>正常</span>
+                        <span>快</span>
+                    </div>
+                </div>
+
+                <div class="input-group" id="pitchRateGroup">
+                    <label>音调：<span id="pitchRateValue">0</span></label>
+                    <input type="range" id="pitchRate" min="-500" max="500" value="0" step="50"
+                           style="width: 100%;" oninput="document.getElementById('pitchRateValue').textContent = this.value">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #999;">
+                        <span>低</span>
+                        <span>正常</span>
+                        <span>高</span>
+                    </div>
+                </div>
+
+                <div class="input-group" id="volumeGroup">
+                    <label>音量：<span id="volumeValue">10</span></label>
+                    <input type="range" id="volume" min="-10" max="10" value="10" step="1"
+                           style="width: 100%;" oninput="document.getElementById('volumeValue').textContent = this.value">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #999;">
+                        <span>小</span>
+                        <span>中</span>
+                        <span>大</span>
+                    </div>
+                </div>
+
+                <div class="input-group" id="customVoiceInfo" style="display:none;">
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                        <div style="font-weight: 600; color: #2e7d32; margin-bottom: 8px;">✨ 使用腾讯云专业声音复刻</div>
+                        <div style="font-size: 13px; color: #555; line-height: 1.6;">
+                            音色名称：<strong>带货女声</strong><br>
+                            音色ID：WCHN-add25...458e<br>
+                            支持长文本自动分段合成<br>
+                            <small style="color: #666;">💡 提示：这是您训练的专属音色，效果更自然</small>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="synthesizeBtn">🎙️ 合成语音</button>
+
+                <div class="loading" id="ttsLoading" style="display:none;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px; color: #666;">正在合成语音...</p>
+                </div>
+
+                <div class="generate-result" id="ttsResult">
+                    <div class="result-header">
+                        <div class="result-title">🎵 合成结果</div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <audio id="audioPlayer" controls style="width: 100%; border-radius: 8px;"></audio>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn-action btn-copy" onclick="downloadAudio()">📥 下载音频</button>
+                        <button class="btn-action btn-regenerate" onclick="replayAudio()">▶️ 重新播放</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 语音合成Tab结束 -->
+
     </div>
 
     <script>
+        // 辅助函数：将 Base64 转换为 Blob
+        function base64ToBlob(base64, mimeType) {
+            const byteCharacters = atob(base64);
+            const byteArrays = [];
+
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                const byteNumbers = new Array(slice.length);
+
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+
+            return new Blob(byteArrays, {type: mimeType});
+        }
+
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const uploadBtn = document.getElementById('uploadBtn');
@@ -954,6 +1108,9 @@
             } else if (tabName === 'content') {
                 document.getElementById('contentTab').classList.add('active');
                 document.querySelector('.tab-btn:nth-child(4)').classList.add('active');
+            } else if (tabName === 'tts') {
+                document.getElementById('ttsTab').classList.add('active');
+                document.querySelector('.tab-btn:nth-child(5)').classList.add('active');
             }
         }
 
@@ -1077,6 +1234,13 @@
             const loading = document.getElementById('productLoading');
             const result = document.getElementById('productResult');
             const btn = document.getElementById('extractProductBtn');
+
+            // 清除上一次的商品图片和抠图结果
+            document.getElementById('mainImages').innerHTML = '';
+            document.getElementById('detailImages').innerHTML = '';
+            document.getElementById('batchProcessResult').style.display = 'none';
+            document.getElementById('processedImages').innerHTML = '';
+            window.processedResults = [];
 
             loading.style.display = 'block';
             result.style.display = 'none';
@@ -1414,6 +1578,239 @@
             } catch (error) {
                 contentLoading.style.display = 'none';
                 alert('生成失败：' + error.message);
+            }
+        }
+
+        // TTS语音合成功能
+        const ttsText = document.getElementById('ttsText');
+        const synthesizeBtn = document.getElementById('synthesizeBtn');
+        const ttsLoading = document.getElementById('ttsLoading');
+        const ttsResult = document.getElementById('ttsResult');
+        const audioPlayer = document.getElementById('audioPlayer');
+        let currentAudioData = null;
+        let currentProvider = 'tencent';  // 默认腾讯云
+
+        // 文本长度计数
+        ttsText.addEventListener('input', () => {
+            document.getElementById('textLength').textContent = ttsText.value.length;
+        });
+
+        // 切换TTS服务商
+        async function switchTTSProvider() {
+            currentProvider = document.getElementById('ttsProvider').value;
+            const maxLength = 1000;
+
+            // 更新字符限制
+            document.getElementById('maxLength').textContent = maxLength;
+            let limitText = '文本内容（最长1000字符）';
+            if (currentProvider === 'tencent') {
+                limitText = '文本内容（支持长文本，自动分段合成）';
+            } else if (currentProvider === 'custom') {
+                limitText = '文本内容（使用您的参考音频音色）';
+            }
+            document.getElementById('textLimitLabel').textContent = limitText;
+
+            // 显示/隐藏情感选择（仅腾讯云显示）
+            document.getElementById('emotionSelectGroup').style.display =
+                currentProvider === 'tencent' ? 'block' : 'none';
+
+            // 显示/隐藏自定义音色信息（仅自定义音色显示）
+            document.getElementById('customVoiceInfo').style.display =
+                currentProvider === 'custom' ? 'block' : 'none';
+
+            // 调整参数范围（腾讯云和阿里云的参数范围不同）
+            if (currentProvider === 'tencent' || currentProvider === 'custom') {
+                // 腾讯云：语速 -2~6，音量 -10~10
+                document.getElementById('speechRate').min = -2;
+                document.getElementById('speechRate').max = 6;
+                document.getElementById('speechRate').step = 0.5;
+                document.getElementById('speechRate').value = 1;  // 默认1倍速（正常速度）
+                document.getElementById('speechRateValue').textContent = 1;
+
+                document.getElementById('volume').min = -10;
+                document.getElementById('volume').max = 10;
+                document.getElementById('volume').step = 1;
+                document.getElementById('volume').value = 10;  // 默认最大音量
+                document.getElementById('volumeValue').textContent = 10;
+
+                // 隐藏音调（腾讯云不支持音调调整）
+                document.getElementById('pitchRateGroup').style.display = 'none';
+            } else {
+                // 阿里云：语速 -500~500，音调 -500~500，音量 0~100
+                document.getElementById('speechRate').min = -500;
+                document.getElementById('speechRate').max = 500;
+                document.getElementById('speechRate').step = 50;
+                document.getElementById('speechRate').value = 0;
+                document.getElementById('speechRateValue').textContent = 0;
+
+                document.getElementById('volume').min = 0;
+                document.getElementById('volume').max = 100;
+                document.getElementById('volume').step = 5;
+                document.getElementById('volume').value = 50;
+                document.getElementById('volumeValue').textContent = 50;
+
+                // 显示音调
+                document.getElementById('pitchRateGroup').style.display = 'block';
+            }
+
+            // 加载对应服务商的音色列表
+            await loadVoices();
+        }
+
+        // 加载音色列表
+        async function loadVoices() {
+            const voiceSelect = document.getElementById('voiceSelect');
+
+            // 如果是自定义音色，显示提示信息
+            if (currentProvider === 'custom') {
+                voiceSelect.innerHTML = '<option value="custom">参考音频音色（已加载）</option>';
+                return;
+            }
+
+            const endpoint = currentProvider === 'tencent' ? '/get_voices_tencent' : '/get_voices';
+
+            try {
+                const response = await fetch(endpoint);
+                const data = await response.json();
+
+                if (data.success) {
+                    voiceSelect.innerHTML = '';
+
+                    data.voices.forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice.id;
+                        option.textContent = voice.name;
+                        voiceSelect.appendChild(option);
+                    });
+
+                    // 如果是腾讯云，默认选择营销女声
+                    if (currentProvider === 'tencent' && data.voices.length > 0) {
+                        voiceSelect.value = '502004';  // 智小满 - 营销女声
+                    }
+                }
+            } catch (error) {
+                console.error('加载音色列表失败:', error);
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            switchTTSProvider();
+        });
+
+        // 合成语音
+        synthesizeBtn.addEventListener('click', async () => {
+            const text = ttsText.value.trim();
+            const voice = document.getElementById('voiceSelect').value;
+            const maxLength = 1000;  // 统一限制1000字符
+
+            if (!text) {
+                alert('请输入要合成的文本');
+                return;
+            }
+
+            if (text.length > maxLength) {
+                alert(`文本长度不能超过${maxLength}字符`);
+                return;
+            }
+
+            // 如果是腾讯云且文本较长，提示用户
+            if (currentProvider === 'tencent' && text.length > 150) {
+                console.log(`长文本检测：${text.length} 字符，将自动分段合成...`);
+            }
+
+            ttsLoading.style.display = 'block';
+            ttsResult.classList.remove('show');
+            synthesizeBtn.disabled = true;
+
+            try {
+                let requestBody;
+                let endpoint;
+
+                if (currentProvider === 'custom') {
+                    // 自定义音色（腾讯云专业声音复刻）
+                    endpoint = '/synthesize_speech_custom';
+                    requestBody = {
+                        text: text,
+                        voice_id: 'WCHN-add2502611834078ac62ba7dd8d2458e',  // 你的自定义音色ID
+                        speed: parseFloat(document.getElementById('speechRate').value),
+                        volume: parseFloat(document.getElementById('volume').value)
+                    };
+                } else if (currentProvider === 'tencent') {
+                    // 腾讯云TTS
+                    endpoint = '/synthesize_speech_tencent';
+                    const emotion = document.getElementById('emotionSelect').value;
+                    requestBody = {
+                        text: text,
+                        voice: voice,
+                        speed: parseFloat(document.getElementById('speechRate').value),
+                        volume: parseFloat(document.getElementById('volume').value),
+                        emotion: emotion || null
+                    };
+                } else {
+                    // 阿里云TTS
+                    endpoint = '/synthesize_speech';
+                    requestBody = {
+                        text: text,
+                        voice: voice,
+                        speech_rate: parseInt(document.getElementById('speechRate').value),
+                        pitch_rate: parseInt(document.getElementById('pitchRate').value),
+                        volume: parseInt(document.getElementById('volume').value)
+                    };
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+
+                ttsLoading.style.display = 'none';
+                synthesizeBtn.disabled = false;
+
+                if (data.success) {
+                    // 将 base64 转换为 Blob URL
+                    const audioBlob = base64ToBlob(data.audio, 'audio/mp3');
+                    const audioUrl = URL.createObjectURL(audioBlob);
+
+                    currentAudioData = `data:audio/mp3;base64,${data.audio}`;
+                    audioPlayer.src = audioUrl;
+                    ttsResult.classList.add('show');
+
+                    // 自动播放
+                    audioPlayer.play();
+                } else {
+                    alert('合成失败：' + data.error);
+                }
+            } catch (error) {
+                ttsLoading.style.display = 'none';
+                synthesizeBtn.disabled = false;
+                alert('合成失败：' + error.message);
+            }
+        });
+
+        // 下载音频
+        function downloadAudio() {
+            if (!currentAudioData) {
+                alert('没有可下载的音频');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = currentAudioData;
+            link.download = 'tts_audio_' + Date.now() + '.mp3';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 重新播放
+        function replayAudio() {
+            if (audioPlayer.src) {
+                audioPlayer.currentTime = 0;
+                audioPlayer.play();
             }
         }
     </script>
